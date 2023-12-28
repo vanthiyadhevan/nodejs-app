@@ -1,47 +1,43 @@
-pipeline {
+apiVersio: apps/v1
+kind: Deployment
+metadata: 
+  name: nodeapp-deployment
+  namespace: devops-tools
+  labels:
+    app: nodeapp
+spec: 
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nodeapp
+  template: 
+    metadata: 
+      labels: 
+        app: nodeapp
+    spec:
+      containers:
+      - name: nodeserver
+          image: thetips4you/nodeapp
+          ports:
+          - containerPort: 3000
 
-  environment {
-    dockerimagename = "thetips4you/nodeapp"
-    dockerImage = ""
-  }
 
-  agent any
 
-  stages {
+---
 
-    stage('Checkout Source') {
-      steps {
-        git 'https://github.com/shazforiot/nodeapp_test.git'
-      }
-    }
+apiVersion: v1
+kind: Service
+metadata: 
+  name: nodeapp-service
+  namespace: devoops-tools
+spec: 
+  selector: 
+    app: nodeapp
+  type: LoadBalancer
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 3000
+    nodePort: 31110
 
-    stage('Build image') {
-      steps{
-        script {
-          dockerImage = docker.build dockerimagename
-        }
-      }
-    }
 
-    stage('Pushing Image') {
-      environment {
-               registryCredential = 'dockerhublogin'
-           }
-      steps{
-        script {
-          docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
-            dockerImage.push("latest")
-          }
-        }
-      }
-    }
-
-    stage('Deploying App to Kubernetes') {
-      steps {
-        script {
-          kubernetesDeploy (configs: 'deploymentservice.yml', kubeconfigId: 'kubernetes')
-        }
-      }
-    }
-
-  }
